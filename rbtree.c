@@ -1700,6 +1700,7 @@ static ID id_group;
 static ID id_object_group;
 static ID id_pp;
 static ID id_text;
+static ID id_each;
 
 static VALUE
 pp_group(VALUE args_)
@@ -1733,7 +1734,7 @@ pp_pair(VALUE nil, pp_pair_arg_t* pair_arg)
 
     rb_funcall(pp, id_pp, 1, GET_KEY(pair_arg->node));
     rb_funcall(pp, id_text, 1, rb_str_new2("=>"));
-    return rb_iterate(pp_group, (VALUE)&group_args, pp_value, (VALUE)pair_arg);
+    return rb_block_call((VALUE)&group_args, id_each, 0, 0, pp_value, (VALUE)pair_arg);
 }
 
 typedef struct {
@@ -1762,7 +1763,7 @@ pp_each_pair_i(dnode_t* node, void* each_pair_arg_)
     pair_arg.pp = each_pair_arg->pp;
     pair_arg.node = node;
 
-    rb_iterate(pp_group, (VALUE)&group_args, pp_pair, (VALUE)&pair_arg);
+    rb_block_call((VALUE)&group_args, id_each, 0, 0, pp_pair, (VALUE)&pair_arg);
     return EACH_NEXT;
 }
 
@@ -1793,7 +1794,7 @@ pp_rbtree(VALUE nil, pp_rbtree_arg_t* rbtree_arg)
     group_args[3] = rb_str_new2("}");
 
     rb_funcall(pp, id_text, 1, rb_str_new2(": "));
-    rb_iterate(pp_group, (VALUE)&group_args, pp_each_pair, (VALUE)rbtree_arg);
+    rb_block_call((VALUE)&group_args, id_each, 0, 0, pp_each_pair, (VALUE)rbtree_arg);
     rb_funcall(pp, id_comma_breakable, 0);
     rb_funcall(pp, id_text, 1, rb_str_new2("default="));
     rb_funcall(pp, id_pp, 1, IFNONE(rbtree));
@@ -1820,7 +1821,8 @@ rbtree_pretty_print(VALUE self, VALUE pp)
     pp_rbtree_arg_t arg;
     arg.rbtree = self;
     arg.pp = pp;
-    return rb_iterate(pp_rbtree_group, (VALUE)&arg, pp_rbtree, (VALUE)&arg);
+
+    return rb_block_call((VALUE)&arg, id_each, 0, 0, pp_rbtree, (VALUE)&arg);
 }
 
 /* :nodoc:
@@ -1993,4 +1995,5 @@ void Init_rbtree()
     id_object_group = rb_intern("object_group");
     id_pp = rb_intern("pp");
     id_text = rb_intern("text");
+    id_each = rb_intern_const("each");
 }
